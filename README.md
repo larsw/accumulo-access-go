@@ -29,5 +29,5 @@ func main() {
 
 ## License
 
-Licensed under the MIT License [LICENSE_MIT](LICENSE).
+Licensed under the MIT License [LICENSE](LICENSE).
 
