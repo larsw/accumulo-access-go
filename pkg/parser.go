@@ -4,7 +4,7 @@ package pkg
 
 import "fmt"
 
-// Assuming Token and Lexer are already defined as in the previous lexer translation
+// Assuming value and Lexer are already defined as in the previous lexer translation
 
 // ParserError represents errors that can occur during parsing.
 type ParserError struct {
@@ -17,110 +17,108 @@ func (e ParserError) Error() string {
 
 // AuthorizationExpression is an interface for different expression types.
 type AuthorizationExpression interface {
-	Evaluate(authorizations map[string]bool) bool
+	evaluate(authorizations map[string]bool) bool
 }
 
 // AndExpression represents an AND expression.
 type AndExpression struct {
-	Nodes []AuthorizationExpression
+	nodes []AuthorizationExpression
 }
 
-func (a AndExpression) Evaluate(authorizations map[string]bool) bool {
-	for _, node := range a.Nodes {
-		if !node.Evaluate(authorizations) {
+func (a AndExpression) evaluate(authorizations map[string]bool) bool {
+	for _, node := range a.nodes {
+		if !node.evaluate(authorizations) {
 			return false
 		}
 	}
 	return true
 }
 
-// Implement Evaluate, ToJSONStr, and Normalize for AndExpression...
+// Implement evaluate, ToJSONStr, and Normalize for AndExpression...
 
 // OrExpression represents an OR expression.
 type OrExpression struct {
-	Nodes []AuthorizationExpression
+	nodes []AuthorizationExpression
 }
 
-func (o OrExpression) Evaluate(authorizations map[string]bool) bool {
-	for _, node := range o.Nodes {
-		if node.Evaluate(authorizations) {
+func (o OrExpression) evaluate(authorizations map[string]bool) bool {
+	for _, node := range o.nodes {
+		if node.evaluate(authorizations) {
 			return true
 		}
 	}
 	return false
 }
 
-// Implement Evaluate, ToJSONStr, and Normalize for OrExpression...
-
 // AccessTokenExpression represents an access token.
 type AccessTokenExpression struct {
-	Token string
+	value string
 }
 
-func (a AccessTokenExpression) Evaluate(authorizations map[string]bool) bool {
-	return authorizations[a.Token]
+func (a AccessTokenExpression) evaluate(authorizations map[string]bool) bool {
+	return authorizations[a.value]
 }
 
-// Implement Evaluate, ToJSONStr, and Normalize for AccessTokenExpression...
+// Implement evaluate, ToJSONStr, and Normalize for AccessTokenExpression...
 
 // Scope is used during parsing to build up expressions.
 type Scope struct {
-	Nodes    []AuthorizationExpression
-	Labels   []AccessTokenExpression
-	Operator Token
+	nodes    []AuthorizationExpression
+	labels   []AccessTokenExpression
+	operator Token
 }
 
 func newScope() *Scope {
 	return &Scope{
-		Nodes:    make([]AuthorizationExpression, 0),
-		Labels:   make([]AccessTokenExpression, 0),
-		Operator: None, // Assuming None is a defined Token value
+		nodes:    make([]AuthorizationExpression, 0),
+		labels:   make([]AccessTokenExpression, 0),
+		operator: None, // Assuming None is a defined value value
 	}
 }
 
 func (s *Scope) addNode(node AuthorizationExpression) {
-	s.Nodes = append(s.Nodes, node)
+	s.nodes = append(s.nodes, node)
 }
 
 func (s *Scope) addLabel(label string) {
-	s.Labels = append(s.Labels, AccessTokenExpression{Token: label})
+	s.labels = append(s.labels, AccessTokenExpression{value: label})
 }
 
 func (s *Scope) setOperator(operator Token) error {
-	if s.Operator != None {
+	if s.operator != None {
 		return ParserError{Message: "unexpected operator"}
 	}
-	s.Operator = operator
+	s.operator = operator
 	return nil
 }
 
 func (s *Scope) Build() (AuthorizationExpression, error) {
-	if len(s.Labels) == 1 && len(s.Nodes) == 0 {
-		return s.Labels[0], nil
+	if len(s.labels) == 1 && len(s.nodes) == 0 {
+		return s.labels[0], nil
 	}
 
-	if len(s.Nodes) == 1 && len(s.Labels) == 0 {
-		return s.Nodes[0], nil
+	if len(s.nodes) == 1 && len(s.labels) == 0 {
+		return s.nodes[0], nil
 	}
 
-	if s.Operator == None {
+	if s.operator == None {
 		return nil, ParserError{Message: "missing operator"}
 	}
 	// combine nodes and labels into one slice
-	combined := make([]AuthorizationExpression, 0, len(s.Nodes)+len(s.Labels))
-	for _, node := range s.Nodes {
+	combined := make([]AuthorizationExpression, 0, len(s.nodes)+len(s.labels))
+	for _, node := range s.nodes {
 		combined = append(combined, node)
 	}
-	for _, label := range s.Labels {
+	for _, label := range s.labels {
 		combined = append(combined, label)
 	}
-	if s.Operator == And {
-		return AndExpression{Nodes: combined}, nil
+	if s.operator == And {
+		return AndExpression{nodes: combined}, nil
 	}
-	if s.Operator == Or {
-		return OrExpression{Nodes: combined}, nil
+	if s.operator == Or {
+		return OrExpression{nodes: combined}, nil
 	}
-	return nil, ParserError{Message: fmt.Sprintf("unexpected operator: %v", s.Operator)}
+	return nil, ParserError{Message: fmt.Sprintf("unexpected operator: %v", s.operator)}
 }
 
 // Parser is used to parse an expression and return an AuthorizationExpression tree.
@@ -128,7 +126,7 @@ type Parser struct {
 	Lexer *Lexer
 }
 
-func NewParser(lexer *Lexer) *Parser {
+func newParser(lexer *Lexer) *Parser {
 	return &Parser{Lexer: lexer}
 }
 
@@ -141,7 +139,7 @@ func (p *Parser) Parse() (AuthorizationExpression, error) {
 			return nil, ParserError{Message: fmt.Sprintf("Lexer error: %v", err)}
 		}
 
-		if tok == None { // Assuming 0 represents the end of input
+		if tok == None {
 			break
 		}
 

@@ -13,6 +13,11 @@ type testCase struct {
 
 func TestCheckAuthorization(t *testing.T) {
 	testCases := []testCase{
+		{"a & b", "b, a", true},
+		{"(a & b)", "b, a", true},
+		{"a | b", "a", true},
+		{"a | b", "b", true},
+		{"(a | b)", "b", true},
 		{"label1", "label1", true},
 		{"label1|label2", "label1", true},
 		{"label1&label2", "label1", false},

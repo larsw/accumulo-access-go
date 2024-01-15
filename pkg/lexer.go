@@ -21,7 +21,7 @@ const (
 	Error
 )
 
-//func (t Token) String() string {
+//func (t value) String() string {
 //	switch t {
 //	case AccessToken:
 //		return "AccessToken"

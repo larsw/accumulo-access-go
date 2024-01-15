@@ -14,16 +14,33 @@ import "strings"
 //
 //	True if the authorizations are allowed to perform the expression, false otherwise.
 func CheckAuthorization(expression string, authorizations string) (bool, error) {
-	parser := NewParser(newLexer(expression))
+	authorizationMap := CommaSeparatedStringToMap(authorizations)
+	return CheckAuthorizationByMap(expression, authorizationMap)
+}
+
+func CheckAuthorizationByMap(expression string, authorizations map[string]bool) (bool, error) {
+	parser := newParser(newLexer(expression))
 	ast, err := parser.Parse()
 	if err != nil {
 		return false, err
 	}
+	return ast.evaluate(authorizations), nil
+}
+
+func CommaSeparatedStringToMap(authorizations string) map[string]bool {
+	// should also trim quotes from quoted strings
 	authorizationMap := make(map[string]bool)
 	for _, authorization := range strings.Split(authorizations, ",") {
-		authorizationMap[authorization] = true
+		tmp := strings.TrimSpace(authorization)
+		if tmp[0] == '"' {
+			tmp = tmp[1:]
+		}
+		if tmp[len(tmp)-1] == '"' {
+			tmp = tmp[:len(tmp)-1]
+		}
+		authorizationMap[tmp] = true
 	}
-	return ast.Evaluate(authorizationMap), nil
+	return authorizationMap
 }
 
 // PrepareAuthorizationCheck returns a function that can be used to check if the given authorizations are allowed to perform the given expression.
@@ -35,16 +52,13 @@ func CheckAuthorization(expression string, authorizations string) (bool, error) 
 //
 //	A function that can be used to check if the given authorizations are allowed to perform the given expression.
 func PrepareAuthorizationCheck(authorizations string) func(string) (bool, error) {
-	authorizationMap := make(map[string]bool)
-	for _, authorization := range strings.Split(authorizations, ",") {
-		authorizationMap[authorization] = true
-	}
+	authorizationMap := CommaSeparatedStringToMap(authorizations)
 	return func(expression string) (bool, error) {
-		parser := NewParser(newLexer(expression))
+		parser := newParser(newLexer(expression))
 		ast, err := parser.Parse()
 		if err != nil {
 			return false, err
 		}
-		return ast.Evaluate(authorizationMap), nil
+		return ast.evaluate(authorizationMap), nil
 	}
 }
