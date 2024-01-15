@@ -13,6 +13,7 @@ type testCase struct {
 
 func TestCheckAuthorization(t *testing.T) {
 	testCases := []testCase{
+		{"a & b & (c | d)", "a,b,c", true},
 		{"a & b", "b, a", true},
 		{"(a & b)", "b, a", true},
 		{"a | b", "a", true},

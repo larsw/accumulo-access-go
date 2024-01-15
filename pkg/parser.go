@@ -85,10 +85,11 @@ func (s *Scope) addLabel(label string) {
 }
 
 func (s *Scope) setOperator(operator Token) error {
-	if s.operator != None {
+	if s.operator == None {
+		s.operator = operator
+	} else if s.operator != operator {
 		return ParserError{Message: "unexpected operator"}
 	}
-	s.operator = operator
 	return nil
 }
 
